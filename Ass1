@@ -1,0 +1,76 @@
+### CSE313_Assignment1
+
+
+# Set working directory
+setwd("~/Documents/R_Directory/CSE313_Ass1/dds_datasets/dds_ch2_nyt")
+
+# Install and load packages required
+
+if (!require("ggplot2")) install.packages("ggplot2", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library(ggplot2)
+if (!require("dplyr")) install.packages("plyr", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library("dplyr")
+if (!require("doBy")) install.packages("doBy", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library("doBy")
+
+
+# Read each day's data into separate data frame
+
+List<-list.files()
+dat<-lapply(List, read.csv) 
+for (i in 1:length(List)){
+  name = paste("Day", i, sep = "")
+  assign(name, read.csv(paste("nyt", i, ".csv",sep = "")))
+}
+
+## Task 1.A
+# The single day selected is seventh day, thus file `nyt26.csv` is used
+# Clean the data and Categorize the users
+
+Day26<-Day26 %>% filter(Age > 0)
+Day26$ageGroup<-cut(Day26$Age, c(-Inf, 30, 39, 49, 59, Inf))
+Day26$gender.F<-factor(Day26$Gender, labels = c("Male", "Female"))
+Day26$CTR<-Day26$Clicks/Day26$Impressions
+
+# ggplot(subset(Day26, Impressions>0), aes(x=Impressions, y=CTR, color = ageGroup)) +
+#  geom_count(aes(color = ageGroup, alpha = 0.1)) +
+#  scale_size_area(max_size = 8) +
+#  ylab("CTR (clicks/impression)") +
+#  xlab("Impression") +
+#  xlim(0, 18) 
+
+
+# Distribution of number impressions for the 5 age categories
+
+ggplot(subset(Day26, Clicks>0), aes(x = as.factor(Impressions), fill = ageGroup))+ 
+  geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
+  xlab("Impressions")
+
+ggplot(Day26, aes(x=ageGroup, y=Impressions, fill=ageGroup)) + geom_boxplot()
+  
+
+# Distribution of CTR for the 5 age categories
+
+ggplot(subset(Day26, Impressions>0), aes(x = CTR, color = ageGroup))+ 
+  geom_density() +
+  scale_fill_brewer(palette = "Set3") +
+  xlab("Impressions") +
+  ylab("CTR (clicks/impression)")
+
+ggplot(subset(Day26, Clicks>0), aes(x=CTR, colour=ageGroup)) + 
+  geom_density() +
+  scale_color_brewer(palette = "Set3")
+
+ggplot(Day26, aes(x=ageGroup, y=Clicks, fill=ageGroup)) + geom_boxplot()
+
+
+## Task1.B
+
+# Create data frame for required data
+
+teenBoy<-filter(Day26, Age>0, Age<18, gender.F == "Male")
+teenGirl<-filter(Day26, Age>0, Age<18, gender.F == "Female")
+demoDat<-rbind(teenBoy, teenGirl)
+
+
