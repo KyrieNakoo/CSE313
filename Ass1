@@ -2,16 +2,26 @@
 
 
 # Set working directory
+
 setwd("~/Documents/R_Directory/CSE313_Ass1/dds_datasets/dds_ch2_nyt")
+
 
 # Install and load packages required
 
 if (!require("ggplot2")) install.packages("ggplot2", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
 library(ggplot2)
 if (!require("dplyr")) install.packages("plyr", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
-library("dplyr")
+library(dplyr)
 if (!require("doBy")) install.packages("doBy", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
-library("doBy")
+library(doBy)
+if (!require("gridExtra")) install.packages("gridExtra", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library(gridExtra)
+if (!require("magrittr")) install.packages("magrittr", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library(magrittr)
+if (!require("ggpol")) install.packages("ggpol", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library(ggpol)
+if (!require("data.table")) install.packages("data.table", repos = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/")
+library(data.table)
 
 
 # Read each day's data into separate data frame
@@ -23,6 +33,7 @@ for (i in 1:length(List)){
   assign(name, read.csv(paste("nyt", i, ".csv",sep = "")))
 }
 
+
 ## Task 1.A
 # The single day selected is seventh day, thus file `nyt26.csv` is used
 # Clean the data and Categorize the users
@@ -32,45 +43,316 @@ Day26$ageGroup<-cut(Day26$Age, c(-Inf, 30, 39, 49, 59, Inf))
 Day26$gender.F<-factor(Day26$Gender, labels = c("Male", "Female"))
 Day26$CTR<-Day26$Clicks/Day26$Impressions
 
-# ggplot(subset(Day26, Impressions>0), aes(x=Impressions, y=CTR, color = ageGroup)) +
-#  geom_count(aes(color = ageGroup, alpha = 0.1)) +
-#  scale_size_area(max_size = 8) +
-#  ylab("CTR (clicks/impression)") +
-#  xlab("Impression") +
-#  xlim(0, 18) 
+View(Day26)
+# Change those `NAN`value to `0`
+Day26<-replace(Day26, is.na(Day26), 0)
 
 
 # Distribution of number impressions for the 5 age categories
 
-ggplot(subset(Day26, Clicks>0), aes(x = as.factor(Impressions), fill = ageGroup))+ 
+p1<-ggplot(subset(Day26, Clicks>0), aes(x = as.factor(Impressions), fill = ageGroup))+ 
   geom_bar() +
   scale_fill_brewer(palette = "Set3") +
-  xlab("Impressions")
+  xlab("Impressions") +
+  ggtitle("Impression numbers in age groups on Date 26")
+p1
 
-ggplot(Day26, aes(x=ageGroup, y=Impressions, fill=ageGroup)) + geom_boxplot()
-  
+p2<-ggplot(Day26, aes(x=ageGroup, y=Impressions, fill=ageGroup)) + 
+  geom_boxplot() +
+  ggtitle("Boxplot of Impression in age groups on Date 26")
+p2  
+
 
 # Distribution of CTR for the 5 age categories
 
-ggplot(subset(Day26, Impressions>0), aes(x = CTR, color = ageGroup))+ 
+p3<-ggplot(subset(Day26, Impressions>0), aes(x = Impressions, color = ageGroup))+ 
   geom_density() +
   scale_fill_brewer(palette = "Set3") +
   xlab("Impressions") +
-  ylab("CTR (clicks/impression)")
+  ylab("CTR (clicks/impression)") +
+  ggtitle("Distribution of CTR value vs Impression across age groups on Date 26")
+p3
 
-ggplot(subset(Day26, Clicks>0), aes(x=CTR, colour=ageGroup)) + 
+p4<-ggplot(subset(Day26, Clicks>0), aes(x=CTR, colour=ageGroup)) + 
   geom_density() +
-  scale_color_brewer(palette = "Set3")
+  scale_color_brewer(palette = "Set3") +
+  ggtitle("Distribution of CTR across age groups on Date 2")
+p4
 
-ggplot(Day26, aes(x=ageGroup, y=Clicks, fill=ageGroup)) + geom_boxplot()
+p5<-ggplot(Day26, aes(x=ageGroup, y=Clicks, fill=ageGroup)) + 
+  geom_boxplot() +
+  ggtitle("Boxplot of Clicks across age groups on Date 26")
+p5
 
 
 ## Task1.B
 
 # Create data frame for required data
 
-teenBoy<-filter(Day26, Age>0, Age<18, gender.F == "Male")
-teenGirl<-filter(Day26, Age>0, Age<18, gender.F == "Female")
+teenBoy<-filter(Day26, Age>0, Age<18, Impressions!=0, gender.F == "Male")
+teenGirl<-filter(Day26, Age>0, Age<18, Impressions!=0, gender.F == "Female")
 demoDat<-rbind(teenBoy, teenGirl)
+
+
+# Distribution of Impressions for users according to gender
+
+p6<-ggplot(subset(demoDat, Clicks>0), aes(x = factor(Impressions), fill = gender.F))+
+  geom_bar(alpha = 0.4, color = "#e9ecef", position = 'identity') +
+  scale_fill_manual(values = c("#69b3a2", "#404080")) +
+  theme_bw() +
+  xlab("Impressions") +
+  ggtitle("Impression number for server under 18 across gender on Date 26")
+p6
+
+
+# Distribution of CTR for users according to gender
+
+p7<-ggplot(subset(demoDat, Clicks>0), aes(x = gender.F, y = CTR, color=CTR))+ 
+  geom_point() +
+  geom_jitter(width = 0.15, height = 0.01) +
+  theme_bw() +
+  ggtitle("CTR value for server under 18 across gender on Date 26")
+p7
+
+
+# Distribution of impression number and CTR for users according to gender
+
+p8<-ggplot(subset(demoDat, Impressions>0), aes(x=Impressions, y=CTR, color = gender.F, fill = gender.F)) +
+  scale_size_area(max_size = 14) +
+  geom_jitter(width = 0.3, height = 0.04, alpha = 0.1) +
+  theme_bw() +
+  ggtitle("CTR vs Impression number for server under 18 across gender on Date 26")
+p8
+p9<-grid.arrange(arrangeGrob(p6,p7, ncol =2), p8, nrow = 2)
+p9
+
+
+# Distribution of users according to age in gender respectively
+
+p10<-ggplot(demoDat, aes(x=as.factor(Age), fill = gender.F)) +
+  geom_jitter(aes(y = CTR, color = gender.F), alpha = 0.2, width = 0.25, height = 0.015) +
+  xlab("Age") +
+  ggtitle("CTR value for server in each age  under 18 across gender on Date 26")
+p10
+
+
+# Creat quantitative table
+
+totality <- function(x){sum(x)}
+amount <- function(x){length(x)}
+average <- function(x){mean(x)}
+
+totalNum<-function(dataset){
+  d1<-summaryBy(Impressions + Clicks + CTR ~Age, data = dataset, FUN = totality, fun.names = "Sum")
+  d2<-summaryBy(gender.F ~Age, data = dataset, FUN = amount, var.names = "", fun.names = "Amount")
+  d3<-data.frame(d1[,1],d2[,2], d1[,2:4])
+  colnames(d3) <-c("Age", "Amount", "Impression.Sum", "Click.Sum", "CTR.Sum")
+  d3
+}
+teenSum<-cbind(Gender=c(rep("Male",11), rep("Female",12)), 
+rbind(totalNum(teenBoy), totalNum(teenGirl)))
+
+teenAve<-summaryBy(Age + Impressions + Clicks + CTR ~ gender.F, 
+                   data = demoDat, FUN = average, fun.names = "Mean")
+colnames(teenAve) <- c("Gender", "Age.ave", "Click.ave", "Impression.ave", "CTR.ave")
+
+teenSum
+teenAve
+
+
+# teenAvec<-data.frame(Male = as.numeric(teenAve[1,2:5]), Female = as.numeric(teenAve[2,2:5]))
+# rownames(teenAvec)<-c("Age.ave", "Click.ave", "Impression.ave", "CTR.ave")
+# teenAvec
+
+
+## Task1.C
+
+# define a function `siteRange` to calculate the required values
+
+siteRange <- function(x){c(min(x), quantile(x, probs = 0.25), mean(x), 
+                           quantile(x, probs = 0.75), max(x), var(x))}
+
+day26<-data.frame(Age = Day26[,1], Impressions = Day26[,3], Clicks = Day26[,4], CTR = Day26[,8])
+
+
+# Calculate teh required values for `CTR` respectively referring to `ageGroup`, `Gender`, `Scode`
+
+# Create categories
+
+Day26$scode[Day26$Impressions==0] <- "NoImps"
+Day26$scode[Day26$Impressions >0] <- "Imps"
+Day26$scode[Day26$Clicks >0] <- "Clicks"
+
+
+mxNamcol<-c("Min", "Q1", "Mean", "Q3", "Max", "Variance")
+
+t1<-summaryBy(CTR ~ ageGroup, data = Day26, FUN = siteRange)
+colnames(t1)<-c("AgeRange", mxNamcol)
+
+t2<-summaryBy(CTR ~ ageGroup + gender.F, data = Day26, FUN = siteRange)
+colnames(t2)<-c("AgeRange", "Gender", mxNamcol)
+
+t3<-summaryBy(CTR ~ ageGroup + gender.F + scode, data = Day26, FUN = siteRange)
+colnames(t3)<-c("AgeRange", "Gender", "Scode", mxNamcol)
+
+t1; t2; t3
+
+
+# Calculate the required values for `Age`, `Impressions`, `Clicks`, `CTR` respectively
+
+dat2<-data.frame()
+for (i in 1:4){
+ dat1<-siteRange(day26[,i])
+ dat2<-rbind(dat2, dat1)
+}
+mx1<-as.matrix(dat2)
+colnames(mx1)<-mxNamcol
+mxNamrow<-c("Age", "Impressions", "Click", "CTR")
+rownames(mx1)<-mxNamrow
+mx1
+
+
+# Calculate teh required values for `Age`, `Impressions`, `Clicks`, `CTR` respectively referring to `Gender`
+
+d1<-summaryBy(Age  ~ gender.F, data = Day26, FUN = siteRange)
+d2<-summaryBy(Impressions ~ gender.F, data = Day26, FUN = siteRange)
+d3<-summaryBy(Clicks ~ gender.F, data = Day26, FUN = siteRange)
+d4<-summaryBy(CTR ~ gender.F, data = Day26, FUN = siteRange)
+dat3<-rbindlist(list(d1,d2,d3,d4))
+dat3
+
+mx.Male<-as.matrix(dat3[c(1,3,5,7),2:7])
+mx.Female<-as.matrix(dat3[c(2,4,6,8), 2:7])
+colnames(mx.Male)<-mxNamcol
+colnames(mx.Female)<-mxNamcol
+rownames(mx.Male)<-mxNamrow
+rownames(mx.Female)<-mxNamrow
+
+mx.Male; mx.Female
+
+
+
+## Task2
+
+a<-sample(c(1:31), 10, replace = F)
+dayC<-data.frame()
+
+for (i in 1:10){
+  b <- read.csv(paste("nyt", a[i], ".csv",sep = ""))
+  b$Day <- paste("Day", a[i], sep = "")
+  dayC<-rbind(dayC, b)
+}
+
+dayC<-dayC %>% filter(Age>0)
+dayC$ageGroup<-cut(dayC$Age, c(-Inf, 30, 39, 49, 59, Inf))
+dayC$gender.F<-factor(dayC$Gender, labels = c("Male", "Female"))
+dayC$CTR <- dayC$Clicks/dayC$Impressions
+dayC<-replace(dayC, is.na(dayC), 0)
+dayC$scode[dayC$Impressions==0] <- "NoImps"
+dayC$scode[dayC$Impressions >0] <- "Imps"
+dayC$scode[dayC$Clicks >0] <- "Clicks"
+dayC <- dayC[c("Day", "ageGroup", "Age", "Gender", "gender.F", 
+             "Impressions", "Clicks", "CTR", "scode", "Signed_In")]
+
+View(dayC)
+
+
+# Create tables for CTR according to `Day`, `ageGroup`, `Gender` and `scode`
+
+m1<-summaryBy(CTR ~ Day + ageGroup, data = dayC, FUN = siteRange)
+colnames(m1)<-c("Day", "AgeRange", mxNamcol)
+
+m2<-summaryBy(CTR ~ Day + ageGroup + gender.F, data = dayC, FUN = siteRange)
+colnames(m2)<-c("Day","AgeRange", "Gender", mxNamcol)
+
+m3<-summaryBy(CTR ~ Day + ageGroup + gender.F + scode, data = dayC, FUN = siteRange)
+colnames(m3)<-c("Day","AgeRange", "Gender", "Scode", mxNamcol)
+
+m4<-summaryBy(Age ~ Day + ageGroup + gender.F, data = dayC, FUN = amount)
+colnames(m4)<-c("Day","AgeRange", "Gender", "Amount")
+
+m5<-summaryBy(Clicks ~ Day + ageGroup + gender.F, data = dayC, FUN = average)
+colnames(m5)<-c("Day","AgeRange", "Gender", "ClickAve")
+
+m1; m2; m3; m4; m5
+
+
+# Visualize the information in tables above
+
+# The CTR mean of each `AgeRange` for 10 days are visualized in the signal figure
+f1<-ggplot(m2, aes(x=AgeRange, y=Mean, color=Gender)) +
+  geom_jitter(alpha=0.5, width = 0.35) +
+  theme_bw() +
+  ylab("Mean of CTR") +
+  ggtitle("Mean of CTR in age groups across gender for 10 days")
+
+# The amount of server in each `AgeRange`
+f2<-ggplot(m4, aes(x=AgeRange, y=Amount, fill=Gender)) +
+  geom_bar(stat = "identity", position = 'identity', alpha = 0.4) +
+  scale_fill_manual(values = c("#69b3a2", "#404080")) +
+  facet_wrap(~Day, scales = "free") +
+  theme_bw() +
+  ggtitle("Number of servers in age groups across gender for 10 days")
+
+# The average click times in each `AgeRange`
+f3<-ggplot(m5, aes(x=AgeRange, y=ClickAve, fill=Gender)) +
+  geom_bar(stat = "identity", position = 'identity', alpha = 0.4) +
+  scale_fill_manual(values = c("#69b3a2", "#404080")) +
+  facet_wrap(~Day, scales = "free") +
+  theme_bw() +
+  ggtitle("Average of Clicks in age groups across gender for 10 days")
+
+f1; f2; f3
+
+
+
+# Visualize the boxplot of each day referring to `ageGroup`
+
+p10<-ggplot(dayC, aes(x=ageGroup, y=CTR, color=gender.F)) +
+  geom_boxplot(alpha=0.1) +
+  scale_color_manual(values = c("#fbe555", "#64c4ed")) +
+  facet_wrap(~Day, scales = "free") +
+  theme_bw() +
+  ggtitle("Boxplot of CTR in age groups across gender for 10 days")
+p10
+# As most group's 1Q, 3Q close to 0, the box is unable to recognized from plots.
+
+
+
+# Visualize the distribution of each day referring to `Impressions`
+
+p11<-ggplot(subset(dayC, Clicks>0), aes(x = factor(Impressions), fill = gender.F))+
+  geom_bar(alpha = 0.4, color = "#e9ecef", position = 'identity') +
+  scale_fill_manual(values = c("#69b3a2", "#404080")) +
+  facet_wrap(~Day, scales = "free") +
+  theme_bw() +
+  xlab("Impressions") +
+  ggtitle("Number of Impression across gender for 10 days")
+p11
+
+
+# Visualize the distribution of each day referring to `CTR`
+
+p12<-ggplot(subset(dayC, Clicks>0), aes(x = gender.F, y = CTR, color= CTR))+ 
+  geom_point() +
+  geom_jitter(width = 0.25, height = 0.01, alpha=0.2) +
+  facet_wrap(~Day, scales = "free") +
+  theme_bw() +
+  ggtitle("Distribution of CTR across gender for 10 days")
+p12
+
+
+# Visualize the distribution of each day referring to `CTR` and `Impressions`
+
+p13<-ggplot(subset(dayC, Impressions>0), aes(x=Impressions, y=CTR, color = gender.F)) +
+  scale_size_area(max_size = 10) +
+  geom_jitter(width = 0.35, height = 0.04, size = 0.1, alpha = 0.2) +
+  scale_color_manual(values = c("#fbe555", "#64c4ed")) +
+  facet_wrap(~Day, scales = "free") +
+  theme_bw() +
+  ggtitle("CTR vs Impression across gender for 10 days")
+p13
+
+
 
 
